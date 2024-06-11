@@ -59,16 +59,21 @@ if button:
         else:
             st.error("Unsupported file format. Please upload a CSV or Excel file.")
 
+
 def preprocess_data():
     st.header("Preprocess the data")
-    
+
     # Remove columns
     st.subheader("Remove Columns")
-    columns_to_remove = st.multiselect("Select columns to remove", st.session_state.columns)
+    columns_to_remove = st.multiselect(
+        "Select columns to remove", st.session_state.columns
+    )
     if st.button("Remove selected columns"):
         if columns_to_remove:
             st.session_state.df.drop(columns=columns_to_remove, inplace=True)
-            st.session_state.columns = st.session_state.df.columns.tolist()  # Update columns in session state
+            st.session_state.columns = (
+                st.session_state.df.columns.tolist()
+            )  # Update columns in session state
             st.success(f"Removed columns: {', '.join(columns_to_remove)}")
         else:
             st.warning("No columns selected for removal.")
@@ -77,25 +82,29 @@ def preprocess_data():
     st.subheader("Handle Missing Values")
 
     drop_missing_button = st.button("Drop rows with missing values")
-    fill_value = st.text_input("Enter value to fill missing values (leave blank to fill with column mean)")
+    fill_value = st.text_input(
+        "Enter value to fill missing values (leave blank to fill with column mean)"
+    )
     fill_missing_button = st.button("Fill missing values")
 
     if drop_missing_button:
         st.session_state.df = st.session_state.df.dropna()
         st.success("Rows with missing values have been dropped.")
-    
+
     if fill_missing_button:
         if fill_value:
             st.session_state.df = st.session_state.df.fillna(fill_value)
         else:
             st.session_state.df = st.session_state.df.fillna(st.session_state.df.mean())
         st.success("Missing values have been filled.")
-    
+
     # Encode categorical variables
     st.subheader("Encode Categorical Variables")
-    categorical_columns = st.multiselect("Select categorical columns to encode", st.session_state.columns)
+    categorical_columns = st.multiselect(
+        "Select categorical columns to encode", st.session_state.columns
+    )
     encode_button = st.button("Encode selected columns")
-    
+
     if encode_button:
         if categorical_columns:
             for col in categorical_columns:
@@ -106,38 +115,58 @@ def preprocess_data():
 
     # Convert columns to integer
     st.subheader("Convert Columns to Integer")
-    int_convert_columns = st.multiselect("Select columns to convert to integer", st.session_state.columns)
+    int_convert_columns = st.multiselect(
+        "Select columns to convert to integer", st.session_state.columns
+    )
     convert_int_button = st.button("Convert selected columns to integer")
 
     if convert_int_button:
         if int_convert_columns:
             for col in int_convert_columns:
                 st.session_state.df[col] = st.session_state.df[col].astype(int)
-            st.success(f"Converted columns to integer: {', '.join(int_convert_columns)}")
+            st.success(
+                f"Converted columns to integer: {', '.join(int_convert_columns)}"
+            )
         else:
             st.warning("No columns selected for conversion.")
 
-
     # Rename columns
     st.subheader("Rename Columns")
-    rename_columns = st.multiselect("Select columns to rename", st.session_state.columns)
+    rename_columns = st.multiselect(
+        "Select columns to rename", st.session_state.columns
+    )
     if rename_columns:
-        new_names = st.text_area("Enter new names for the selected columns (comma-separated)", value=",".join(rename_columns))
+        new_names = st.text_area(
+            "Enter new names for the selected columns (comma-separated)",
+            value=",".join(rename_columns),
+        )
         new_names_list = new_names.split(",")
         if len(rename_columns) == len(new_names_list):
             rename_dict = dict(zip(rename_columns, new_names_list))
             st.session_state.df.rename(columns=rename_dict, inplace=True)
         else:
             st.error("Number of new names must match the number of selected columns.")
-    
+
     st.write("Preprocessed data preview:")
     st.write(st.session_state.df.head())
+
+    # Button to download the processed dataset
+    if st.session_state.df is not None:
+        download_button = st.download_button(
+            label="Download processed dataset",
+            data=st.session_state.df.to_csv(index=False).encode(),
+            file_name="processed_dataset.csv",
+            mime="text/csv",
+        )
+
 
 # Function to predict with selected algorithm
 def predict_with_algorithm(df, predictor_variables, target_variable, algorithm):
     X = df[predictor_variables]
     y = df[target_variable]
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
 
     # Feature scaling
     scaler = StandardScaler()
@@ -169,9 +198,9 @@ def predict_with_algorithm(df, predictor_variables, target_variable, algorithm):
         st.write("R-squared (R²):", r2)
     else:
         accuracy = accuracy_score(y_test, y_pred)
-        precision = precision_score(y_test, y_pred, average='weighted', zero_division=0)
-        recall = recall_score(y_test, y_pred, average='weighted', zero_division=0)
-        f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
+        precision = precision_score(y_test, y_pred, average="weighted", zero_division=0)
+        recall = recall_score(y_test, y_pred, average="weighted", zero_division=0)
+        f1 = f1_score(y_test, y_pred, average="weighted", zero_division=0)
         st.write("Accuracy:", accuracy)
         st.write("Precision:", precision)
         st.write("Recall:", recall)
@@ -179,17 +208,25 @@ def predict_with_algorithm(df, predictor_variables, target_variable, algorithm):
 
     plt.figure(figsize=(10, 6))
     sns.scatterplot(x=y_pred, y=y_test)
-    plt.plot([min(y_test), max(y_test)], [min(y_test), max(y_test)], color='red', linestyle='--')
-    plt.xlabel('Predicted Values')
-    plt.ylabel('Actual Values')
-    plt.title(f'Actual vs Predicted Values for {algorithm}')
+    plt.plot(
+        [min(y_test), max(y_test)],
+        [min(y_test), max(y_test)],
+        color="red",
+        linestyle="--",
+    )
+    plt.xlabel("Predicted Values")
+    plt.ylabel("Actual Values")
+    plt.title(f"Actual vs Predicted Values for {algorithm}")
     st.pyplot(plt)
+
 
 # Function to render prediction options
 def predict_value():
     st.header("Predict the values")
     target_variable = st.sidebar.selectbox("Target variable", st.session_state.columns)
-    predictor_variables = [col for col in st.session_state.columns if col != target_variable]
+    predictor_variables = [
+        col for col in st.session_state.columns if col != target_variable
+    ]
     algorithm = st.sidebar.selectbox(
         "Choose algorithm",
         [
@@ -210,17 +247,22 @@ def predict_value():
             st.error("Please select at least one predictor variable.")
         else:
             predict_with_algorithm(
-                st.session_state.df, selected_predictor_variables, target_variable, algorithm
+                st.session_state.df,
+                selected_predictor_variables,
+                target_variable,
+                algorithm,
             )
+
 
 # Main function to render the app
 def main():
-    menu = ["Data preprocessing","Value predicting"]
+    menu = ["Data preprocessing", "Value predicting"]
     choice = st.sidebar.selectbox("Menu", menu)
     if choice == "Value predicting":
         predict_value()
     else:
         preprocess_data()
+
 
 if __name__ == "__main__":
     main()
