@@ -44,21 +44,94 @@ if button:
             df = pd.read_csv(select_file)
             st.session_state.df = df
             st.session_state.columns = df.columns.tolist()
-            st.write("Data preview:")
+            st.subheader("Data preview:")
             st.write(df.head())
-            st.write("Data summary:")
+            st.subheader("Data summary:")
             st.write(df.describe())
         elif select_file.name.endswith(".xlsx"):
             df = pd.read_excel(select_file)
             st.session_state.df = df
             st.session_state.columns = df.columns.tolist()
-            st.write("Data preview:")
+            st.subheader("Data preview:")
             st.write(df.head())
-            st.write("Data summary:")
+            st.subheader("Data summary:")
             st.write(df.describe())
         else:
             st.error("Unsupported file format. Please upload a CSV or Excel file.")
 
+def preprocess_data():
+    st.header("Preprocess the data")
+    
+    # Remove columns
+    st.subheader("Remove Columns")
+    columns_to_remove = st.multiselect("Select columns to remove", st.session_state.columns)
+    if st.button("Remove selected columns"):
+        if columns_to_remove:
+            st.session_state.df.drop(columns=columns_to_remove, inplace=True)
+            st.session_state.columns = st.session_state.df.columns.tolist()  # Update columns in session state
+            st.success(f"Removed columns: {', '.join(columns_to_remove)}")
+        else:
+            st.warning("No columns selected for removal.")
+
+    # Check for missing values
+    st.subheader("Handle Missing Values")
+
+    drop_missing_button = st.button("Drop rows with missing values")
+    fill_value = st.text_input("Enter value to fill missing values (leave blank to fill with column mean)")
+    fill_missing_button = st.button("Fill missing values")
+
+    if drop_missing_button:
+        st.session_state.df = st.session_state.df.dropna()
+        st.success("Rows with missing values have been dropped.")
+    
+    if fill_missing_button:
+        if fill_value:
+            st.session_state.df = st.session_state.df.fillna(fill_value)
+        else:
+            st.session_state.df = st.session_state.df.fillna(st.session_state.df.mean())
+        st.success("Missing values have been filled.")
+    
+    # Encode categorical variables
+    st.subheader("Encode Categorical Variables")
+    categorical_columns = st.multiselect("Select categorical columns to encode", st.session_state.columns)
+    encode_button = st.button("Encode selected columns")
+    
+    if encode_button:
+        if categorical_columns:
+            for col in categorical_columns:
+                st.session_state.df[col] = pd.factorize(st.session_state.df[col])[0]
+            st.success(f"Encoded columns: {', '.join(categorical_columns)}")
+        else:
+            st.warning("No columns selected for encoding.")
+
+    # Convert columns to integer
+    st.subheader("Convert Columns to Integer")
+    int_convert_columns = st.multiselect("Select columns to convert to integer", st.session_state.columns)
+    convert_int_button = st.button("Convert selected columns to integer")
+
+    if convert_int_button:
+        if int_convert_columns:
+            for col in int_convert_columns:
+                st.session_state.df[col] = st.session_state.df[col].astype(int)
+            st.success(f"Converted columns to integer: {', '.join(int_convert_columns)}")
+        else:
+            st.warning("No columns selected for conversion.")
+
+
+    # Rename columns
+    st.subheader("Rename Columns")
+    rename_columns = st.multiselect("Select columns to rename", st.session_state.columns)
+    if rename_columns:
+        new_names = st.text_area("Enter new names for the selected columns (comma-separated)", value=",".join(rename_columns))
+        new_names_list = new_names.split(",")
+        if len(rename_columns) == len(new_names_list):
+            rename_dict = dict(zip(rename_columns, new_names_list))
+            st.session_state.df.rename(columns=rename_dict, inplace=True)
+        else:
+            st.error("Number of new names must match the number of selected columns.")
+    
+    st.write("Preprocessed data preview:")
+    st.write(st.session_state.df.head())
 
 # Function to predict with selected algorithm
 def predict_with_algorithm(df, predictor_variables, target_variable, algorithm):
@@ -142,10 +215,12 @@ def predict_value():
 
 # Main function to render the app
 def main():
-    menu = ["Predict value"]
+    menu = ["Data preprocessing","Value predicting"]
     choice = st.sidebar.selectbox("Menu", menu)
-    if choice == "Predict value":
+    if choice == "Value predicting":
         predict_value()
+    else:
+        preprocess_data()
 
 if __name__ == "__main__":
     main()
